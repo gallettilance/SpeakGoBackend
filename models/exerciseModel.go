@@ -14,4 +14,6 @@ type Exercise struct {
 	CreatedAt		time.Time			`json:"created_at" bson:"created_at"`
 	UpdatedAt		time.Time			`json:"updated_at" bson:"updated_at"`
 	ExerciseID		string				`json:"exercise_id" bson:"exercise_id"`
+	IsGlobal    	bool               	`json:"is_global" bson:"is_global"`
+	TherapistID 	string             	`json:"therapist_id" bson:"therapist_id"`
 }

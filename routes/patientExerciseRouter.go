@@ -16,5 +16,4 @@ func PatientExerciseRoutes(incomingRoutes *gin.RouterGroup){
 	incomingRoutes.GET("/patientexercises/:patient_id", controller.GetPatientExercisesByUser())
 	incomingRoutes.POST("/getuploadurl/:patient_exercise_id", controller.RecordingPresignPost())
 	incomingRoutes.GET("/getdownloadurl/:patient_exercise_id", controller.GetRecordingPresignURL())
-	
 }
