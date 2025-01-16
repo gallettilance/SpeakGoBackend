@@ -2,19 +2,16 @@ package controllers
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"golang-speakbackend/database"
 	"golang-speakbackend/helpers"
 	"golang-speakbackend/models"
-	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
@@ -25,46 +22,46 @@ import (
 
 var patientExerciseCollection *mongo.Collection = database.OpenCollection(database.Client, "patient_exercise")
 
-func wrapKey(key, kmsKeyID string) (string, error) {
-	kmsClient := helpers.GetKMSClient()
+// func wrapKey(key, kmsKeyID string) (string, error) {
+// 	kmsClient := helpers.GetKMSClient()
 
-	input := &kms.EncryptInput{
-		KeyId:     aws.String(kmsKeyID),
-		Plaintext: []byte(key),
-	}
+// 	input := &kms.EncryptInput{
+// 		KeyId:     aws.String(kmsKeyID),
+// 		Plaintext: []byte(key),
+// 	}
 
-	result, err := kmsClient.Encrypt(context.Background(), input)
-	if err != nil {
-		log.Printf("Error encrypting key: %v", err)
-		return "", err
-	}
+// 	result, err := kmsClient.Encrypt(context.Background(), input)
+// 	if err != nil {
+// 		log.Printf("Error encrypting key: %v", err)
+// 		return "", err
+// 	}
 
-	return base64.StdEncoding.EncodeToString(result.CiphertextBlob), nil
-}
+// 	return base64.StdEncoding.EncodeToString(result.CiphertextBlob), nil
+// }
 
-func unwrapKey(wrappedKey, kmsKeyID string) (string, error) {
-	kmsClient := helpers.GetKMSClient()
+// func unwrapKey(wrappedKey, kmsKeyID string) (string, error) {
+// 	kmsClient := helpers.GetKMSClient()
 
-	ciphertextBlob, err := base64.StdEncoding.DecodeString(wrappedKey)
-	if err != nil {
-		log.Printf("Error decoding wrapped key: %v", err)
-		return "", err
-	}
+// 	ciphertextBlob, err := base64.StdEncoding.DecodeString(wrappedKey)
+// 	if err != nil {
+// 		log.Printf("Error decoding wrapped key: %v", err)
+// 		return "", err
+// 	}
 
-	input := &kms.DecryptInput{
-		KeyId:             aws.String(kmsKeyID),
-		CiphertextBlob:    ciphertextBlob,
-		EncryptionContext: nil, // Add encryption context if used during wrapping
-	}
+// 	input := &kms.DecryptInput{
+// 		KeyId:             aws.String(kmsKeyID),
+// 		CiphertextBlob:    ciphertextBlob,
+// 		EncryptionContext: nil, // Add encryption context if used during wrapping
+// 	}
 
-	result, err := kmsClient.Decrypt(context.Background(), input)
-	if err != nil {
-		log.Printf("Error decrypting key: %v", err)
-		return "", err
-	}
+// 	result, err := kmsClient.Decrypt(context.Background(), input)
+// 	if err != nil {
+// 		log.Printf("Error decrypting key: %v", err)
+// 		return "", err
+// 	}
 
-	return string(result.Plaintext), nil
-}
+// 	return string(result.Plaintext), nil
+// }
 
 func RecordingPresignPost() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -86,7 +83,7 @@ func RecordingPresignPost() gin.HandlerFunc {
 
 		// Wrap the AES key using AWS KMS
 		kmsKeyID := os.Getenv("KMS_KEY_ID")
-		wrappedKey, err := wrapKey(requestBody.AESKey, kmsKeyID)
+		wrappedKey, err := helpers.WrapKey(requestBody.AESKey, kmsKeyID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to wrap encryption key"})
 			return
@@ -153,7 +150,7 @@ func GetRecordingPresignURL() gin.HandlerFunc {
 		}
 
 		// Unwrap the AES key using AWS KMS
-		unwrappedKey, err := unwrapKey(patientExercise.WrappedKey, kmsKeyID)
+		unwrappedKey, err := helpers.UnwrapKey(patientExercise.WrappedKey, kmsKeyID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unwrap encryption key"})
 			return
